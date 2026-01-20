@@ -1,0 +1,135 @@
+if getgenv().scriptAlreadyRan then
+    warn("⚠️ Script already ran.")
+    return
+end
+getgenv().scriptAlreadyRan = true
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local player = Players.LocalPlayer
+
+-- Цель: >= 50M/s (50_000_000)
+local TARGET_INCOME = 50000000
+
+-- Функция парсинга дохода из строки (примеры: "1.48M/s", "$10/s", "$1K/s", "750/s", "$50M/s")
+local function parseIncome(text)
+    if not text or type(text) ~= "string" then return 0 end
+    
+    -- Убираем пробелы и приводим к нижнему регистру
+    text = text:gsub("%s+", ""):lower()
+    
+    -- Находим число + модификатор + /s
+    local numStr, modifier = text:match("([$]?)([%d%.]+)([km]?)/s")
+    if not numStr or not modifier then return 0 end
+    
+    local number = tonumber(numStr) or 0
+    if modifier == "k" then
+        number = number * 1000
+    elseif modifier == "m" then
+        number = number * 1000000
+    end
+    
+    return number
+end
+
+-- Сканируем нужные пути (основные из твоего скриншота)
+local totalHighIncome = 0
+local highIncomeCount = 0
+local foundHigh = {}
+
+-- 1. Сканируем GenerationBoard (ScrollingFrame с LineXX.GenerationLabel)
+local generationBoard = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("GenerationBoard", true)
+if generationBoard then
+    local scrollingFrame = generationBoard:FindFirstChild("Main", true) and generationBoard.Main:FindFirstChild("SurfaceGui", true) and generationBoard.Main.SurfaceGui:FindFirstChild("Main", true) and generationBoard.Main.SurfaceGui.Main:FindFirstChild("ScrollingFrame", true)
+    if scrollingFrame then
+        for _, line in ipairs(scrollingFrame:GetChildren()) do
+            if line:IsA("Frame") and line.Name:match("Line%d+") then
+                local label = line:FindFirstChild("GenerationLabel")
+                if label and label:IsA("TextLabel") and label.Text then
+                    local income = parseIncome(label.Text)
+                    if income >= TARGET_INCOME then
+                        totalHighIncome = totalHighIncome + income
+                        highIncomeCount = highIncomeCount + 1
+                        table.insert(foundHigh, string.format("%s: %s (%.2fM/s)", line.Name, label.Text, income / 1000000))
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- 2. Сканируем Debris (FastOverheadTemplate.AnimalOverhead.Generation)
+local debris = workspace:FindFirstChild("Debris")
+if debris then
+    for _, obj in ipairs(debris:GetChildren()) do
+        local animalOverhead = obj:FindFirstChild("FastOverheadTemplate", true) and obj.FastOverheadTemplate:FindFirstChild("AnimalOverhead", true)
+        if animalOverhead then
+            local generation = animalOverhead:FindFirstChild("Generation")
+            if generation and generation:IsA("TextLabel") and generation.Text then
+                local income = parseIncome(generation.Text)
+                if income >= TARGET_INCOME then
+                    totalHighIncome = totalHighIncome + income
+                    highIncomeCount = highIncomeCount + 1
+                    table.insert(foundHigh, string.format("Debris.%s: %s (%.2fM/s)", obj.Name, generation.Text, income / 1000000))
+                end
+            end
+        end
+    end
+end
+
+-- 3. Сканируем ReplicatedStorage (Controllers и Overheads)
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local controllers = replicatedStorage:FindFirstChild("Controllers", true) and replicatedStorage.Controllers:FindFirstChild("FastOverheadController", true)
+if controllers then
+    local animalOverhead = controllers:FindFirstChild("AnimalOverhead", true)
+    if animalOverhead then
+        local generation = animalOverhead:FindFirstChild("Generation")
+        if generation and generation:IsA("TextLabel") and generation.Text then
+            local income = parseIncome(generation.Text)
+            if income >= TARGET_INCOME then
+                totalHighIncome = totalHighIncome + income
+                highIncomeCount = highIncomeCount + 1
+                table.insert(foundHigh, string.format("ReplicatedStorage.Controllers.FastOverheadController.AnimalOverhead.Generation: %s (%.2fM/s)", generation.Text, income / 1000000))
+            end
+        end
+    end
+end
+
+local overheads = replicatedStorage:FindFirstChild("Overheads", true) and replicatedStorage.Overheads:FindFirstChild("AnimalOverhead", true)
+if overheads then
+    local generation = overheads:FindFirstChild("Generation")
+    if generation and generation:IsA("TextLabel") and generation.Text then
+        local income = parseIncome(generation.Text)
+        if income >= TARGET_INCOME then
+            totalHighIncome = totalHighIncome + income
+            highIncomeCount = highIncomeCount + 1
+            table.insert(foundHigh, string.format("ReplicatedStorage.Overheads.AnimalOverhead.Generation: %s (%.2fM/s)", generation.Text, income / 1000000))
+        end
+    end
+end
+
+-- Итог
+print("Сканирование завершено.")
+print("Найдено Brainrots >= 50M/s: " .. highIncomeCount)
+
+if highIncomeCount > 0 then
+    local totalM = totalHighIncome / 1000000
+    local msg = string.format("Найдены дорогие Brainrots! Суммарно: %.2fM/s\n\nНайденные:\n%s", totalM, table.concat(foundHigh, "\n"))
+    
+    print(msg)
+    
+    -- Кик с сообщением
+    player:Kick(msg .. "\n\nСуммарный доход >= 50M/s: " .. totalM .. "M/s")
+else
+    print("Нет Brainrots >= 50M/s → телепорт в плейс 920587237")
+    
+    local success, err = pcall(function()
+        TeleportService:Teleport(920587237, player)
+    end)
+    
+    if not success then
+        warn("Телепорт не удался: " .. tostring(err))
+    end
+end
