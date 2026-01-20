@@ -1,66 +1,67 @@
+if getgenv().scriptAlreadyRan then
+    warn("⚠️ Script already ran.")
+    return
+end
+getgenv().scriptAlreadyRan = true
+
+repeat task.wait() until game:IsLoaded()
+
+if game.PlaceId ~= 142823291 then
+    warn("❌ Этот скрипт только для Murder Mystery 2 (PlaceId: 142823291)")
+    return
+end
+
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local plr = Players.LocalPlayer
 local min_rarity = "Godly"
 local min_value = 1
-
 local database = require(ReplicatedStorage:WaitForChild("Database"):WaitForChild("Sync"):WaitForChild("Item"))
-
 local HttpRequest = request or (syn and syn.request) or http_request or (http and http.request) or game.HttpGet
-
 local rarityTable = {
     "Common", "Uncommon", "Rare", "Legendary", "Godly", "Ancient", "Unique", "Vintage"
 }
-
 local categories = {
-    godly  = "https://supremevaluelist.com/mm2/godlies.html",
+    godly = "https://supremevaluelist.com/mm2/godlies.html",
     ancient = "https://supremevaluelist.com/mm2/ancients.html",
-    unique  = "https://supremevaluelist.com/mm2/uniques.html",
+    unique = "https://supremevaluelist.com/mm2/uniques.html",
     classic = "https://supremevaluelist.com/mm2/vintages.html",
-    chroma  = "https://supremevaluelist.com/mm2/chromas.html"
+    chroma = "https://supremevaluelist.com/mm2/chromas.html"
 }
-
 local headers = {
     ["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     ["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 }
-
 local function trim(s) return s:match("^%s*(.-)%s*$") end
-
 local function fetchHTML(url)
     local success, response = pcall(function()
         return HttpRequest({Url = url, Method = "GET", Headers = headers})
     end)
     return success and response and response.Body or ""
 end
-
 local function parseValue(body)
     local val = body:match("<b%s+class=['\"]itemvalue['\"]>([%d,%.]+)</b>")
     if val then return tonumber(val:gsub(",", "")) end
     return nil
 end
-
 local function extractItems(html)
     local items = {}
     for name, body in html:gmatch("<div%s+class=['\"]itemhead['\"]>(.-)</div>%s*<div%s+class=['\"]itembody['\"]>(.-)</div>") do
         name = trim(name:match("([^<]+)")):lower():gsub("%s+", " ")
-        name = (name:split(" Click "))[1] or name
+        name = (string.split(name, " Click "))[1] or name
         name = trim(name)
         local v = parseValue(body)
         if v then items[name] = v end
     end
     return items
 end
-
 local function buildValueList()
     local values, chromas = {}, {}
     local tasks = {}
     local completed = 0
     local waitEvent = Instance.new("BindableEvent")
-
     for cat, url in pairs(categories) do
         table.insert(tasks, task.spawn(function()
             local html = fetchHTML(url)
@@ -76,15 +77,12 @@ local function buildValueList()
             if completed == #tasks then waitEvent:Fire() end
         end))
     end
-
     waitEvent.Event:Wait()
-
     local valueList = {}
     for id, item in pairs(database) do
         local name = (item.ItemName or ""):lower()
         local rarity = item.Rarity or ""
         local hasChroma = item.Chroma or false
-
         local idx = table.find(rarityTable, rarity)
         if idx and idx >= table.find(rarityTable, "Godly") then
             if hasChroma then
@@ -96,30 +94,27 @@ local function buildValueList()
             end
         end
     end
-
     return valueList
 end
-
 local untradable = {
-    DefaultGun = true, DefaultKnife = true, Reaver = true, Reaver_Legendary = true,
-    Reaver_Godly = true, Reaver_Ancient = true, IceHammer = true, IceHammer_Legendary = true,
-    IceHammer_Godly = true, IceHammer_Ancient = true, Gingerscythe = true,
-    -- ... (остальные можно добавить, если нужно)
+    ["DefaultGun"] = true, ["DefaultKnife"] = true, ["Reaver"] = true, ["Reaver_Legendary"] = true,
+    ["Reaver_Godly"] = true, ["Reaver_Ancient"] = true, ["IceHammer"] = true, ["IceHammer_Legendary"] = true,
+    ["IceHammer_Godly"] = true, ["IceHammer_Ancient"] = true, ["Gingerscythe"] = true,
+    ["Gingerscythe_Legendary"] = true, ["Gingerscythe_Godly"] = true, ["Gingerscythe_Ancient"] = true,
+    ["TestItem"] = true, ["Season1TestKnife"] = true, ["Cracks"] = true, ["Icecrusher"] = true,
+    ["???"] = true, ["Dartbringer"] = true, ["TravelerAxeRed"] = true, ["TravelerAxeBronze"] = true,
+    ["TravelerAxeSilver"] = true, ["TravelerAxeGold"] = true, ["BlueCamo_K_2022"] = true,
+    ["GreenCamo_K_2022"] = true, ["SharkSeeker"] = true
 }
-
 local valueList = buildValueList()
 local realData = ReplicatedStorage.Remotes.Inventory.GetProfileData:InvokeServer(plr.Name)
-
 local totalValue = 0
-
 local min_rarity_index = table.find(rarityTable, min_rarity)
-
 for dataid, amount in pairs(realData.Weapons.Owned or {}) do
     local item = database[dataid]
     if item then
         local rarity = item.Rarity
         local rIndex = table.find(rarityTable, rarity)
-
         if rIndex and rIndex >= min_rarity_index and not untradable[dataid] then
             local value = valueList[dataid] or (rIndex >= table.find(rarityTable, "Godly") and 2 or 1)
             if value >= min_value then
@@ -128,46 +123,20 @@ for dataid, amount in pairs(realData.Weapons.Owned or {}) do
         end
     end
 end
-
 print("Общая стоимость Godly+ предметов: " .. totalValue)
-
 -- ───────────────────────────────────────────────────────────────
 -- Логика телепорта, если стоимость меньше 1
 -- ───────────────────────────────────────────────────────────────
-
 if totalValue < 1 then
     print("Стоимость < 1 → телепорт в Grow a Garden")
-
-    -- Телепорт
     local success, err = pcall(function()
         TeleportService:Teleport(126884695634066, plr)
     end)
-
     if not success then
         warn("Телепорт не удался: " .. tostring(err))
     end
-
-    -- Ждём загрузки нового места
-    game.Loaded:Wait()
-
-    -- Запускаем внешний скрипт
-    local scriptUrl = "https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/GameChecker"
-    
-    local code, err = pcall(function()
-        return game:HttpGet(scriptUrl, true)
-    end)
-
-    if code then
-        local func, loadErr = loadstring(code)
-        if func then
-            func()
-            print("Скрипт Grow a Garden загружен и запущен")
-        else
-            warn("Ошибка в loadstring: " .. tostring(loadErr))
-        end
-    else
-        warn("Не удалось загрузить скрипт: " .. tostring(err))
-    end
+    -- ⚠️ ВНИМАНИЕ: Код ниже НЕ выполнится после телепорта (скрипт прервётся).
+    -- Для автозагрузки скрипта на новом плейсе используй отдельный универсальный лоадер!
 else
     print("Стоимость >= 1 → телепорт отменён")
 end
