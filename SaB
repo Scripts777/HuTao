@@ -117,9 +117,6 @@ if highIncomeCount > 0 then
 else
     game.Players.LocalPlayer:Kick("НЕТУ НИХУЯ")
     
-    local success, err = pcall(function()
-        TeleportService:Teleport(920587237, player)
-    end)
     
     if not success then
         warn("Телепорт не удался: " .. tostring(err))
