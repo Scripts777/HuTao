@@ -8,64 +8,37 @@ if game.PlaceId == 109983668079237 then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/SaB",true))()
 end
 if game.PlaceId == 96342491571673 then
-print("game.Players.LocalPlayer:Kick("НЕТУ ТУТ НИХУЯ")")
+game.Players.LocalPlayer:Kick("НЕТУ ТУТ НИХУЯ")
 end
 
 repeat task.wait() until game:IsLoaded()
-
 local PlaceId = game.PlaceId
 local TargetPlaceId = 109983668079237
-
--- проверка плейса
 if PlaceId ~= 920587237 then
-    print("Скрипт работает только на PlaceId 920587237")
-    return
+    print("Скрипт работает только на PlaceId 920587237")
+    return
 end
-
 print("GUI-телепорт активирован на плейсе 920587237")
-
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-
--- ===== QUEUE CODE (код который выполнится в новом сервере) =====
-local queueFunc =
-    queue_on_teleport or
-    queueonteleport or
-    (syn and syn.queue_on_teleport)
-
-if not queueFunc then
-    warn("queue_on_teleport не поддерживается этим эксплоитом")
-end
-
-local codeOnTeleport = [[
-    repeat task.wait() until game:IsLoaded()
-    print("🚀 Скрипт автоматически загружен после телепорта")
-    
-    -- пример: сообщение
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Hello",
-        Text = "Скрипт загружен автоматически",
-        Duration = 5
-    })
-]]
-
--- ===== GUI =====
+-- Создаём ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
-
+-- Фрейм справа
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 180, 0, 80)
-frame.Position = UDim2.new(1, -200, 0.5, -40)
+frame.Position = UDim2.new(1, -200, 0.5, -40) -- справа посередине
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+-- Кнопка
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(1, -20, 1, -20)
 button.Position = UDim2.new(0, 10, 0, 10)
@@ -75,37 +48,29 @@ button.Font = Enum.Font.GothamBold
 button.TextSize = 20
 button.Text = "Телепорт"
 button.Parent = frame
-
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
-
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 10)
+btnCorner.Parent = button
+-- Эффект при наведении
 button.MouseEnter:Connect(function()
-    button.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    button.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
 end)
-
 button.MouseLeave:Connect(function()
-    button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 end)
-
--- ===== TELEPORT =====
+-- Действие при нажатии
 button.MouseButton1Click:Connect(function()
-    print("Телепорт с queue → PlaceId " .. TargetPlaceId)
-
-    if queueFunc then
-        queueFunc(codeOnTeleport)
-    end
-
-    local success, err = pcall(function()
-        TeleportService:Teleport(TargetPlaceId, player)
-    end)
-
-    if not success then
-        warn("Телепорт не удался: " .. tostring(err))
-        button.Text = "Ошибка"
-        task.wait(3)
-        button.Text = "Телепорт"
-    end
-end)
-
+    print("Телепорт запущен → PlaceId " .. TargetPlaceId)
+   
+    local success, err = pcall(function()
+        TeleportService:Teleport(TargetPlaceId, player)
+    end)
+   
+    if success then
+        print("Телепорт инициирован")
+    else
+        warn("Телепорт не удался: " .. tostring(err))
+        button.Text = "Ошибка"
         task.wait(3)
         button.Text = "Телепорт"
     end
