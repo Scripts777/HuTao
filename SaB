@@ -3,7 +3,7 @@ local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
 
 -- Цель: >= 50M/s (50_000_000)
-local TARGET_INCOME = 50000000
+local TARGET_INCOME = 10000000
 
 -- Функция парсинга дохода из строки (примеры: "1.48M/s", "$10/s", "$1K/s", "750/s", "$50M/s")
 local function parseIncome(text)
