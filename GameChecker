@@ -1,3 +1,6 @@
+--ST
+wait(1);
+repeat task.wait() until game:IsLoaded()
 if game.PlaceId == 142823291 then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/mm2",true))()
 end
@@ -5,7 +8,6 @@ if game.PlaceId == 126884695634066 then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/GaG",true))()
 end
 if game.PlaceId == 109983668079237 then
-repeat task.wait() until game:IsLoaded()
 wait(5);
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/SaB",true))()
 end
