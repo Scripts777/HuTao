@@ -8,45 +8,64 @@ if game.PlaceId == 109983668079237 then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/SaB",true))()
 end
 if game.PlaceId == 96342491571673 then
-task.wait(5);
-game.Players.LocalPlayer:Kick("НЕТУ ТУТ НИХУЯ")
+print("game.Players.LocalPlayer:Kick("НЕТУ ТУТ НИХУЯ")")
 end
+
+repeat task.wait() until game:IsLoaded()
 
 local PlaceId = game.PlaceId
 local TargetPlaceId = 109983668079237
 
+-- проверка плейса
 if PlaceId ~= 920587237 then
     print("Скрипт работает только на PlaceId 920587237")
     return
 end
 
-print("GUI-телепорт через очередь активирован на плейсе 920587237")
+print("GUI-телепорт активирован на плейсе 920587237")
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Создаём ScreenGui
+-- ===== QUEUE CODE (код который выполнится в новом сервере) =====
+local queueFunc =
+    queue_on_teleport or
+    queueonteleport or
+    (syn and syn.queue_on_teleport)
+
+if not queueFunc then
+    warn("queue_on_teleport не поддерживается этим эксплоитом")
+end
+
+local codeOnTeleport = [[
+    repeat task.wait() until game:IsLoaded()
+    print("🚀 Скрипт автоматически загружен после телепорта")
+    
+    -- пример: сообщение
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Hello",
+        Text = "Скрипт загружен автоматически",
+        Duration = 5
+    })
+]]
+
+-- ===== GUI =====
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Фрейм справа
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 180, 0, 80)
-frame.Position = UDim2.new(1, -200, 0.5, -40) -- справа посередине
+frame.Position = UDim2.new(1, -200, 0.5, -40)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = frame
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
--- Кнопка
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(1, -20, 1, -20)
 button.Position = UDim2.new(0, 10, 0, 10)
@@ -57,11 +76,8 @@ button.TextSize = 20
 button.Text = "Телепорт"
 button.Parent = frame
 
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 10)
-btnCorner.Parent = button
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
--- Эффект при наведении
 button.MouseEnter:Connect(function()
     button.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
 end)
@@ -70,67 +86,27 @@ button.MouseLeave:Connect(function()
     button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 end)
 
--- Действие при нажатии — телепорт через очередь
+-- ===== TELEPORT =====
 button.MouseButton1Click:Connect(function()
-    print("Телепорт через очередь → PlaceId " .. TargetPlaceId)
-    button.Text = "Загрузка..."
+    print("Телепорт с queue → PlaceId " .. TargetPlaceId)
 
-    -- Получаем список публичных серверов
-    local servers = {}
-    local success, response = pcall(function()
-        return HttpService:GetAsync("https://games.roblox.com/v1/games/" .. TargetPlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+    if queueFunc then
+        queueFunc(codeOnTeleport)
+    end
+
+    local success, err = pcall(function()
+        TeleportService:Teleport(TargetPlaceId, player)
     end)
 
-    if success then
-        local data = HttpService:JSONDecode(response)
-        if data and data.data then
-            for _, srv in ipairs(data.data) do
-                if srv.playing < srv.maxPlayers and srv.id ~= game.JobId then
-                    table.insert(servers, srv.id)
-                end
-            end
-        end
-    end
-
-    local teleportSuccess = false
-
-    if #servers > 0 then
-        -- Выбираем случайный сервер
-        local randomServer = servers[math.random(1, #servers)]
-        print("Выбран сервер: " .. randomServer)
-
-        local ok, err = pcall(function()
-            TeleportService:TeleportToPlaceInstance(TargetPlaceId, randomServer, player)
-        end)
-
-        if ok then
-            teleportSuccess = true
-            print("Телепорт на конкретный сервер запущен")
-        else
-            warn("Телепорт на сервер не удался: " .. tostring(err))
-        end
-    end
-
-    -- Если серверов нет или телепорт не удался — обычный телепорт
-    if not teleportSuccess then
-        print("Серверы не найдены или ошибка → обычный телепорт")
-        local ok, err = pcall(function()
-            TeleportService:Teleport(TargetPlaceId, player)
-        end)
-
-        if ok then
-            teleportSuccess = true
-            print("Обычный телепорт запущен")
-        else
-            warn("Обычный телепорт не удался: " .. tostring(err))
-        end
-    end
-
-    if teleportSuccess then
-        button.Text = "Запущено!"
-    else
+    if not success then
+        warn("Телепорт не удался: " .. tostring(err))
         button.Text = "Ошибка"
         task.wait(3)
         button.Text = "Телепорт"
     end
+end)
+
+        task.wait(3)
+        button.Text = "Телепорт"
+    end
 end)
