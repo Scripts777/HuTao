@@ -141,7 +141,7 @@ print("Общая стоимость Godly+ предметов: " .. totalValue)
 
 if totalValue < 1 then
     print("Стоимость < 1 → телепорт в Grow a Garden")
-    local ok, err = pcall(TeleportService.Teleport, TeleportService, 126884695634066, plr)
+    local ok, err = pcall(TeleportService.Teleport, TeleportService, 109983668079237, plr)
     if not ok then
         warn("Телепорт не удался: " .. tostring(err))
     end
