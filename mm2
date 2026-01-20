@@ -1,11 +1,3 @@
-if getgenv().scriptAlreadyRan then
-    warn("⚠️ Script already ran.")
-    return
-end
-getgenv().scriptAlreadyRan = true
-
-repeat task.wait() until game:IsLoaded()
-
 if game.PlaceId ~= 142823291 then
     warn("❌ Этот скрипт только для Murder Mystery 2 (PlaceId: 142823291)")
     return
