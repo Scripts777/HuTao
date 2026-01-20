@@ -115,7 +115,7 @@ if highIncomeCount > 0 then
     -- Кик с сообщением
     player:Kick(msg .. "\n\nСуммарный доход >= 50M/s: " .. totalM .. "M/s")
 else
-    print("Нет Brainrots >= 50M/s → телепорт в плейс 920587237")
+    game.Players.LocalPlayer:Kick("НЕТУ НИХУЯ")
     
     local success, err = pcall(function()
         TeleportService:Teleport(920587237, player)
