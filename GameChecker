@@ -11,7 +11,6 @@ if game.PlaceId == 96342491571673 then
 task.wait(5);
 game.Players.LocalPlayer:Kick("НЕТУ ТУТ НИХУЯ")
 end
-repeat task.wait() until game:IsLoaded()
 
 local PlaceId = game.PlaceId
 local TargetPlaceId = 109983668079237
@@ -21,10 +20,11 @@ if PlaceId ~= 920587237 then
     return
 end
 
-print("GUI-телепорт активирован на плейсе 920587237")
+print("GUI-телепорт через очередь активирован на плейсе 920587237")
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -37,7 +37,7 @@ screenGui.Parent = playerGui
 -- Фрейм справа
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 180, 0, 80)
-frame.Position = UDim2.new(1, -200, 0.5, -40)  -- справа посередине
+frame.Position = UDim2.new(1, -200, 0.5, -40) -- справа посередине
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -70,18 +70,65 @@ button.MouseLeave:Connect(function()
     button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 end)
 
--- Действие при нажатии
+-- Действие при нажатии — телепорт через очередь
 button.MouseButton1Click:Connect(function()
-    print("Телепорт запущен → PlaceId " .. TargetPlaceId)
-    
-    local success, err = pcall(function()
-        TeleportService:Teleport(TargetPlaceId, player)
+    print("Телепорт через очередь → PlaceId " .. TargetPlaceId)
+    button.Text = "Загрузка..."
+
+    -- Получаем список публичных серверов
+    local servers = {}
+    local success, response = pcall(function()
+        return HttpService:GetAsync("https://games.roblox.com/v1/games/" .. TargetPlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
     end)
-    
+
     if success then
-        print("Телепорт инициирован")
+        local data = HttpService:JSONDecode(response)
+        if data and data.data then
+            for _, srv in ipairs(data.data) do
+                if srv.playing < srv.maxPlayers and srv.id ~= game.JobId then
+                    table.insert(servers, srv.id)
+                end
+            end
+        end
+    end
+
+    local teleportSuccess = false
+
+    if #servers > 0 then
+        -- Выбираем случайный сервер
+        local randomServer = servers[math.random(1, #servers)]
+        print("Выбран сервер: " .. randomServer)
+
+        local ok, err = pcall(function()
+            TeleportService:TeleportToPlaceInstance(TargetPlaceId, randomServer, player)
+        end)
+
+        if ok then
+            teleportSuccess = true
+            print("Телепорт на конкретный сервер запущен")
+        else
+            warn("Телепорт на сервер не удался: " .. tostring(err))
+        end
+    end
+
+    -- Если серверов нет или телепорт не удался — обычный телепорт
+    if not teleportSuccess then
+        print("Серверы не найдены или ошибка → обычный телепорт")
+        local ok, err = pcall(function()
+            TeleportService:Teleport(TargetPlaceId, player)
+        end)
+
+        if ok then
+            teleportSuccess = true
+            print("Обычный телепорт запущен")
+        else
+            warn("Обычный телепорт не удался: " .. tostring(err))
+        end
+    end
+
+    if teleportSuccess then
+        button.Text = "Запущено!"
     else
-        warn("Телепорт не удался: " .. tostring(err))
         button.Text = "Ошибка"
         task.wait(3)
         button.Text = "Телепорт"
