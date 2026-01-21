@@ -1,0 +1,103 @@
+-- =========================
+-- SERVICES
+-- =========================
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- =========================
+-- ТЕСТОВЫЕ НАСТРОЙКИ
+-- =========================
+local LIMIT = 1 -- 🔥 ТЕСТ: 1/s и больше
+local FAIL_TEXT = "НЕТУ ТУТ НИХУЯ"
+
+local SAVE_FOLDER = "Xeno"
+local SAVE_FILE = "Xeno/GaG_TEST.txt"
+
+-- =========================
+-- ПАРСЕР ДОХОДА $/s
+-- =========================
+local function parseIncome(text)
+    if type(text) ~= "string" then return 0 end
+    text = text:gsub("%s+", "")
+
+    local num, suffix = text:match("%$(%d+%.?%d*)([KkMmBb]?)/s")
+    if not num then return 0 end
+
+    local v = tonumber(num) or 0
+    if suffix == "K" or suffix == "k" then
+        v *= 1e3
+    elseif suffix == "M" or suffix == "m" then
+        v *= 1e6
+    elseif suffix == "B" or suffix == "b" then
+        v *= 1e9
+    end
+
+    return v
+end
+
+-- =========================
+-- МГНОВЕННЫЙ СКАН Debris
+-- =========================
+local totalIncome = 0
+local incomes1 = {}
+
+local debris = workspace:FindFirstChild("Debris")
+if debris then
+    for _, obj in ipairs(debris:GetDescendants()) do
+        if obj:IsA("TextLabel") and obj.Name == "Generation" then
+            local inc = parseIncome(obj.Text)
+            if inc > 0 then
+                totalIncome += inc
+                incomes1[#incomes1 + 1] = inc
+            end
+        end
+    end
+end
+
+-- =========================
+-- СОХРАНЕНИЕ В ФАЙЛ (>= 1/s)
+-- =========================
+pcall(function()
+    if totalIncome >= LIMIT then
+        if not isfolder(SAVE_FOLDER) then
+            makefolder(SAVE_FOLDER)
+        end
+
+        local block =
+            "Username: " .. player.Name .. "\n" ..
+            "TotalIncome: " .. string.format("%.2f/s", totalIncome) .. "\n" ..
+            "SourcesCount: " .. #incomes1 .. "\n"
+
+        for _, inc in ipairs(incomes1) do
+            if inc >= 1e9 then
+                block ..= string.format("%.0fB/s,\n", inc / 1e9)
+            elseif inc >= 1e6 then
+                block ..= string.format("%.0fM/s,\n", inc / 1e6)
+            elseif inc >= 1e3 then
+                block ..= string.format("%.0fK/s,\n", inc / 1e3)
+            else
+                block ..= string.format("%.0f/s,\n", inc)
+            end
+        end
+
+        block ..= "\n=================\n"
+
+        if isfile(SAVE_FILE) then
+            appendfile(SAVE_FILE, block)
+        else
+            writefile(SAVE_FILE, block)
+        end
+    end
+end)
+
+-- =========================
+-- СРАЗУ KICK
+-- =========================
+if totalIncome >= LIMIT then
+    player:Kick(string.format(
+        "TEST MODE\nОбщий доход: %.2f /s",
+        totalIncome
+    ))
+else
+    player:Kick(FAIL_TEXT)
+end
