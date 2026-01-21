@@ -3,7 +3,6 @@
 -- =========================
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
-
 local player = Players.LocalPlayer
 
 -- =========================
@@ -18,38 +17,44 @@ local IGNORE_PETS = {
     StarterEgg = true
 }
 
-local MM2_PLACE_ID = 142823291 -- ← поменяй если нужно
+local TARGET_PLACE_ID = 142823291 -- MM2 (поменяй если нужно)
 
 -- =========================
--- СОЗДАНИЕ ФАЙЛА
+-- ПОДГОТОВКА ФАЙЛА
 -- =========================
 if not isfolder(SAVE_FOLDER) then
     makefolder(SAVE_FOLDER)
 end
 
 -- =========================
--- РЕСПАВН
+-- РЕСЕТ ИГРОКА (СМЕРТЬ)
 -- =========================
-pcall(function()
-    player.Character:BreakJoints()
-end)
+local function resetCharacter()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.Health = 0
+    else
+        char:BreakJoints()
+    end
+end
+
+resetCharacter()
 
 -- =========================
--- ОЖИДАНИЕ
+-- ОЖИДАНИЕ ПОСЛЕ РЕСПАВНА
 -- =========================
 task.wait(10)
 
 -- =========================
--- ПОИСК ПИТОМЦА В МИРЕ
+-- СКАН WORKSPACE.PETS
 -- =========================
 local petsFolder = workspace:FindFirstChild("Pets")
 
-if not petsFolder then
-    warn("❌ Workspace.Pets не найден")
-else
-    for _, petModel in ipairs(petsFolder:GetChildren()) do
-        if petModel:IsA("Model") then
-            local petName = petModel.Name
+if petsFolder then
+    for _, pet in ipairs(petsFolder:GetChildren()) do
+        if pet:IsA("Model") then
+            local petName = pet.Name
 
             if not IGNORE_PETS[petName] then
                 local text =
@@ -61,10 +66,12 @@ else
             end
         end
     end
+else
+    warn("Workspace.Pets не найден")
 end
 
 -- =========================
--- ТЕЛЕПОРТ В MM2
+-- ТЕЛЕПОРТ НА ДРУГОЙ ПЛЕЙС
 -- =========================
 task.wait(1)
-TeleportService:Teleport(MM2_PLACE_ID, player)
+TeleportService:Teleport(TARGET_PLACE_ID, player)
