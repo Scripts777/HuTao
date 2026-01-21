@@ -5,7 +5,7 @@ end
 
 -- >>> НАСТРОЙКИ ТЕЛЕПОРТА <<<
 local TARGET_PLACE_ID = 109983668079237 -- Steal a Brainrot
-local TARGET_JOB_ID = "d1665afb-d462-451f-a3c1-8d78d51052df" -- МЕНЯЕШЬ ТОЛЬКО ЭТО
+local TARGET_JOB_ID = "f38119d9-783c-4ba7-aa3d-3c4d6cbd933b" -- МЕНЯЕШЬ ТОЛЬКО ЭТО
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
