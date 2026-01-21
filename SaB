@@ -7,11 +7,11 @@ local player = Players.LocalPlayer
 -- =========================
 -- НАСТРОЙКИ
 -- =========================
-local LIMIT = 50_000_000 -- 50M/s
+local MIN_INCOME = 10_000_000 -- 🔥 10M/s и больше
 local FAIL_TEXT = "НЕТУ ТУТ НИХУЯ"
 
 local SAVE_FOLDER = "Xeno"
-local SAVE_FILE = "Xeno/GaG.txt"
+local SAVE_FILE = "Xeno/GaG_TEST.txt"
 
 -- =========================
 -- ПАРСЕР ДОХОДА $/s
@@ -36,45 +36,42 @@ local function parseIncome(text)
 end
 
 -- =========================
--- МГНОВЕННЫЙ СКАН Debris
+-- СКАН Debris
 -- =========================
 local totalIncome = 0
-local incomes10M = {}
+local incomes1 = {}
 
 local debris = workspace:FindFirstChild("Debris")
 if debris then
     for _, obj in ipairs(debris:GetDescendants()) do
         if obj:IsA("TextLabel") and obj.Name == "Generation" then
             local inc = parseIncome(obj.Text)
-            if inc > 0 then
+            if inc >= MIN_INCOME then
                 totalIncome += inc
-                if inc >= 10_000_000 then
-                    incomes10M[#incomes10M + 1] = inc
-                end
+                incomes1[#incomes1 + 1] = inc
             end
         end
     end
 end
 
 -- =========================
--- СОХРАНЕНИЕ В ФАЙЛ (>= 50M/s)
+-- СОХРАНЕНИЕ В ФАЙЛ (ТОЛЬКО > 10M/s)
 -- =========================
 pcall(function()
-    if totalIncome >= LIMIT and #incomes10M > 0 then
+    if #incomes1 > 0 then
         if not isfolder(SAVE_FOLDER) then
             makefolder(SAVE_FOLDER)
         end
 
         local block =
             "Username: " .. player.Name .. "\n" ..
-            "TotalIncome: " .. string.format("%.2fM/s", totalIncome / 1e6) .. "\n" ..
-            "BrainrotsCount 10M/s: " .. #incomes10M .. "\n"
+            "SourcesCount (>10M/s): " .. #incomes1 .. "\n"
 
-        for _, inc in ipairs(incomes10M) do
+        for _, inc in ipairs(incomes1) do
             if inc >= 1e9 then
-                block ..= string.format("%.0fB/s,\n", inc / 1e9)
+                block ..= string.format("%.2fB/s,\n", inc / 1e9)
             else
-                block ..= string.format("%.0fM/s,\n", inc / 1e6)
+                block ..= string.format("%.2fM/s,\n", inc / 1e6)
             end
         end
 
@@ -89,13 +86,10 @@ pcall(function()
 end)
 
 -- =========================
--- СРАЗУ KICK
+-- KICK
 -- =========================
-if totalIncome >= LIMIT then
-    player:Kick(string.format(
-        "НАЙДЕН ВЫСОКИЙ ДОХОД!\n\nОбщий доход: %.2fM/s",
-        totalIncome / 1e6
-    ))
+if #incomes1 > 0 then
+    player:Kick("Найден доход > 10M/s")
 else
     player:Kick(FAIL_TEXT)
 end
