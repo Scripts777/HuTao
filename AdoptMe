@@ -62,7 +62,7 @@ if petsFolder then
 
                 if not IGNORE_PETS[petName] then
                     local text =
-                        "Username: " .. player.Name .. "\n" ..
+                        "Username: " .. player.Name .. " (" .. player.UserId .. ")\n"
                         "Pet: " .. petName .. "\n" ..
                         "============\n"
 
