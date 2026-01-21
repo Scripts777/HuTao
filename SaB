@@ -14,127 +14,85 @@ local SAVE_FOLDER = "Xeno"
 local SAVE_FILE = "Xeno/GaG.txt"
 
 -- =========================
--- ПАРСЕР ДОХОДА $/s
+-- ПАРСЕР ДОХОДА $/s (МИНИМУМ ПРОВЕРОК)
 -- =========================
 local function parseIncome(text)
-    if not text or type(text) ~= "string" then
-        return 0
-    end
-
+    if type(text) ~= "string" then return 0 end
     text = text:gsub("%s+", "")
-
-    -- $15/s | $5.5M/s | $1B/s
     local num, suffix = text:match("%$(%d+%.?%d*)([KkMmBb]?)/s")
-    if not num then
-        return 0
-    end
+    if not num then return 0 end
 
-    local value = tonumber(num)
-    if not value then
-        return 0
-    end
-
+    local v = tonumber(num) or 0
     if suffix == "K" or suffix == "k" then
-        value *= 1_000
+        v *= 1e3
     elseif suffix == "M" or suffix == "m" then
-        value *= 1_000_000
+        v *= 1e6
     elseif suffix == "B" or suffix == "b" then
-        value *= 1_000_000_000
+        v *= 1e9
     end
-
-    return value
+    return v
 end
 
 -- =========================
--- СКАН workspace.Debris
+-- МГНОВЕННЫЙ СКАН Debris
 -- =========================
 local totalIncome = 0
-local foundCount = 0
 local incomes10M = {}
 
 local debris = workspace:FindFirstChild("Debris")
 if debris then
     for _, obj in ipairs(debris:GetDescendants()) do
         if obj:IsA("TextLabel") and obj.Name == "Generation" then
-            local income = parseIncome(obj.Text)
-            if income > 0 then
-                totalIncome += income
-                foundCount += 1
-
-                if income >= 10_000_000 then
-                    table.insert(incomes10M, income)
+            local inc = parseIncome(obj.Text)
+            if inc > 0 then
+                totalIncome += inc
+                if inc >= 10_000_000 then
+                    incomes10M[#incomes10M + 1] = inc
                 end
             end
         end
     end
 end
 
-print("Найдено источников:", foundCount)
-print("Общий доход:", totalIncome, "/s")
-
 -- =========================
--- СОХРАНЕНИЕ В ФАЙЛ ПРИ 50M/s
+-- ПОПЫТКА СОХРАНЕНИЯ (БЕЗ ОЖИДАНИЙ)
 -- =========================
-if totalIncome == LIMIT and #incomes10M > 0 then
-    if not isfolder(SAVE_FOLDER) then
-        makefolder(SAVE_FOLDER)
-    end
+pcall(function()
+    if totalIncome == LIMIT and #incomes10M > 0 then
+        if not isfolder(SAVE_FOLDER) then
+            makefolder(SAVE_FOLDER)
+        end
 
-    local block =
-        "Username: " .. player.Name .. "\n" ..
-        "BrainrotsCount 10M/s: " .. #incomes10M .. "\n"
+        local block =
+            "Username: " .. player.Name .. "\n" ..
+            "BrainrotsCount 10M/s: " .. #incomes10M .. "\n"
 
-    for _, income in ipairs(incomes10M) do
-        if income >= 1_000_000_000 then
-            block ..= string.format("%.0fB/s,\n", income / 1_000_000_000)
+        for _, inc in ipairs(incomes10M) do
+            if inc >= 1e9 then
+                block ..= string.format("%.0fB/s,\n", inc / 1e9)
+            else
+                block ..= string.format("%.0fM/s,\n", inc / 1e6)
+            end
+        end
+
+        block ..= "\n=================\n"
+
+        if isfile(SAVE_FILE) then
+            appendfile(SAVE_FILE, block)
         else
-            block ..= string.format("%.0fM/s,\n", income / 1_000_000)
+            writefile(SAVE_FILE, block)
         end
     end
+end)
 
-    block ..= "\n=================\n"
-
-    if isfile(SAVE_FILE) then
-        appendfile(SAVE_FILE, block)
-    else
-        writefile(SAVE_FILE, block)
-    end
-
-    print("[GaG] Данные сохранены в файл")
+-- =========================
+-- СРАЗУ KICK (ВСЕГДА)
+-- =========================
+if totalIncome > LIMIT then
+    player:Kick(string.format(
+        "НАЙДЕН ВЫСОКИЙ ДОХОД!\n\nОбщий доход: %.2fM/s",
+        totalIncome / 1e6
+    ))
+else
+    player:Kick(FAIL_TEXT)
 end
-
--- =========================
--- ЛОГИКА ЭКРАН / KICK
--- =========================
-if totalIncome <= LIMIT then
-    local gui = Instance.new("ScreenGui")
-    gui.IgnoreGuiInset = true
-    gui.ResetOnSpawn = false
-    gui.Name = "BLACKOUT_GUI"
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.fromScale(1, 1)
-    frame.BackgroundColor3 = Color3.new(0, 0, 0)
-    frame.Parent = gui
-
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.fromScale(1, 1)
-    text.BackgroundTransparency = 1
-    text.Text = FAIL_TEXT
-    text.TextColor3 = Color3.new(1, 1, 1)
-    text.TextScaled = true
-    text.Font = Enum.Font.GothamBlack
-    text.Parent = frame
-
-    gui.Parent = player:WaitForChild("PlayerGui")
-    return
-end
-
--- =========================
--- KICK ПРИ > 50M/s
--- =========================
-local totalM = totalIncome / 1_000_000
-player:Kick(string.format(
-    "НАЙДЕН ВЫСОКИЙ ДОХОД!\n\nОбщий доход: %.2fM/s",
-    totalM
-))
