@@ -201,7 +201,7 @@ pcall(function()
         end
 
         local text =
-            "Username: "..plr.Name.."\n"..
+            "Username: " .. player.Name .. " (" .. player.UserId .. ")\n"
             "GodlyCount: "..godlyCount.."\n"..
             "TotalValue: "..totalValue.."\n\n"..
             "=================\n"
