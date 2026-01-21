@@ -64,7 +64,7 @@ pcall(function()
         end
 
         local block =
-            "Username: " .. player.Name .. " (" .. player.UserId .. ")\n"
+            "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
             "TotalIncome: " .. string.format("%.2f/s", totalIncome) .. "\n" ..
             "SourcesCount: " .. #incomes1 .. "\n"
 
