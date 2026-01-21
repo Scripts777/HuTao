@@ -1,28 +1,55 @@
+--==================================================
+-- ПРОВЕРКА ПЛЕЙСА (MM2)
+--==================================================
 if game.PlaceId ~= 142823291 then
     warn("Скрипт только для Murder Mystery 2 (PlaceId 142823291)")
     return
 end
 
--- >>> НАСТРОЙКИ ТЕЛЕПОРТА <<<
+--==================================================
+-- НАСТРОЙКИ ТЕЛЕПОРТА (ПУБЛИЧНЫЙ СЕРВЕР)
+--==================================================
 local TARGET_PLACE_ID = 109983668079237 -- Steal a Brainrot
-local TARGET_JOB_ID = "f38119d9-783c-4ba7-aa3d-3c4d6cbd933b" -- МЕНЯЕШЬ ТОЛЬКО ЭТО
 
+--==================================================
+-- СЕРВИСЫ
+--==================================================
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local plr = Players.LocalPlayer
--- >>> НАСТРОЙКИ СОХРАНЕНИЯ <<<
+
+--==================================================
+-- НАСТРОЙКИ СОХРАНЕНИЯ
+--==================================================
 local SAVE_FOLDER = "Xeno"
 local SAVE_FILE = "Xeno/MM2.txt"
 
 local min_rarity = "Godly"
 local min_value = 1
 
-local database = require(ReplicatedStorage:WaitForChild("Database"):WaitForChild("Sync"):WaitForChild("Item"))
+--==================================================
+-- БАЗА ДАННЫХ MM2
+--==================================================
+local database = require(
+    ReplicatedStorage:WaitForChild("Database")
+        :WaitForChild("Sync")
+        :WaitForChild("Item")
+)
 
-local HttpRequest = request or syn and syn.request or http_request or http and http.request or game.HttpGet
+--==================================================
+-- HTTP
+--==================================================
+local HttpRequest =
+    request or
+    syn and syn.request or
+    http_request or
+    http and http.request
 
-local rarityTable = {"Common", "Uncommon", "Rare", "Legendary", "Godly", "Ancient", "Unique", "Vintage"}
+local rarityTable = {
+    "Common","Uncommon","Rare","Legendary",
+    "Godly","Ancient","Unique","Vintage"
+}
 
 local categories = {
     godly   = "https://supremevaluelist.com/mm2/godlies.html",
@@ -33,47 +60,60 @@ local categories = {
 }
 
 local headers = {
-    Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    ["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    Accept = "text/html",
+    ["User-Agent"] = "Mozilla/5.0"
 }
 
-local function trim(s) return s:match("^%s*(.-)%s*$") end
+--==================================================
+-- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+--==================================================
+local function trim(s)
+    return s:match("^%s*(.-)%s*$")
+end
 
 local function fetchHTML(url)
-    local ok, resp = pcall(function()
-        return HttpRequest({Url = url, Method = "GET", Headers = headers})
+    local ok, res = pcall(function()
+        return HttpRequest({
+            Url = url,
+            Method = "GET",
+            Headers = headers
+        })
     end)
-    return ok and resp and resp.Body or ""
+    return ok and res and res.Body or ""
 end
 
 local function parseValue(body)
-    local valStr = body:match("<b%s+class=['\"]itemvalue['\"][^>]*>([^<]+)</b>")
-    if not valStr then return nil end
-    valStr = valStr:gsub("[^%d]", "")
-    return tonumber(valStr)
+    local val = body:match("<b%s+class=['\"]itemvalue['\"][^>]*>([^<]+)</b>")
+    if not val then return nil end
+    val = val:gsub("[^%d]", "")
+    return tonumber(val)
 end
 
 local function extractItems(html)
     local items = {}
-    for head, body in html:gmatch("<div%s+class=['\"]itemhead['\"]>(.-)</div>%s*<div%s+class=['\"]itembody['\"]>(.-)</div>") do
-        local rawName = head:match("([^<]+)")
-        if rawName then
-            local name = trim(rawName):lower():gsub("%s+", " ")
-            local parts = string.split(name, " Click ")
-            name = trim(parts[1] or name)
-            
-            local v = parseValue(body)
-            if v then items[name] = v end
+    for head, body in html:gmatch(
+        "<div%s+class=['\"]itemhead['\"]>(.-)</div>%s*<div%s+class=['\"]itembody['\"]>(.-)</div>"
+    ) do
+        local name = head:match("([^<]+)")
+        if name then
+            name = trim(name):lower()
+            local value = parseValue(body)
+            if value then
+                items[name] = value
+            end
         end
     end
     return items
 end
 
+--==================================================
+-- СБОР ЦЕН
+--==================================================
 local function buildValueList()
     local values, chromas = {}, {}
-    local completed = 0
-    local waitEvent = Instance.new("BindableEvent")
-    
+    local finished = 0
+    local ev = Instance.new("BindableEvent")
+
     for cat, url in pairs(categories) do
         task.spawn(function()
             local html = fetchHTML(url)
@@ -81,94 +121,121 @@ local function buildValueList()
                 if cat == "chroma" then
                     chromas = extractItems(html)
                 else
-                    local items = extractItems(html)
-                    for k,v in pairs(items) do values[k] = v end
+                    for k,v in pairs(extractItems(html)) do
+                        values[k] = v
+                    end
                 end
             end
-            completed = completed + 1
-            if completed == 5 then waitEvent:Fire() end
+            finished += 1
+            if finished == 5 then
+                ev:Fire()
+            end
         end)
     end
-    
-    waitEvent.Event:Wait()
-    
-    local valueList = {}
+
+    ev.Event:Wait()
+
+    local list = {}
     for id, item in pairs(database) do
         local name = (item.ItemName or ""):lower()
-        local rarity = item.Rarity or ""
-        local hasChroma = item.Chroma or false
-        
-        local idx = table.find(rarityTable, rarity)
-        if idx and idx >= table.find(rarityTable, "Godly") then
-            if hasChroma then
-                for cname, v in pairs(chromas) do
-                    if cname:find(name) then valueList[id] = v break end
+        if item.Chroma then
+            for cname, v in pairs(chromas) do
+                if cname:find(name) then
+                    list[id] = v
+                    break
                 end
-            else
-                valueList[id] = values[name]
             end
+        else
+            list[id] = values[name]
         end
     end
-    return valueList
+
+    return list
 end
 
+--==================================================
+-- НЕПЕРЕДАВАЕМЫЕ ПРЕДМЕТЫ
+--==================================================
 local untradable = {
-    ["DefaultGun"] = true, ["DefaultKnife"] = true, ["Reaver"] = true, ["Reaver_Legendary"] = true,
-    ["Reaver_Godly"] = true, ["Reaver_Ancient"] = true, ["IceHammer"] = true, ["IceHammer_Legendary"] = true,
-    ["IceHammer_Godly"] = true, ["IceHammer_Ancient"] = true, ["Gingerscythe"] = true,
-    ["Gingerscythe_Legendary"] = true, ["Gingerscythe_Godly"] = true, ["Gingerscythe_Ancient"] = true,
-    ["TestItem"] = true, ["Season1TestKnife"] = true, ["Cracks"] = true, ["Icecrusher"] = true,
-    ["???"] = true, ["Dartbringer"] = true, ["TravelerAxeRed"] = true, ["TravelerAxeBronze"] = true,
-    ["TravelerAxeSilver"] = true, ["TravelerAxeGold"] = true, ["BlueCamo_K_2022"] = true,
-    ["GreenCamo_K_2022"] = true, ["SharkSeeker"] = true
+    DefaultGun=true,
+    DefaultKnife=true,
+    Reaver=true,
+    IceHammer=true,
+    Gingerscythe=true,
+    TestItem=true
 }
 
+--==================================================
+-- ПОДСЧЁТ
+--==================================================
 local valueList = buildValueList()
-local realData = ReplicatedStorage.Remotes.Inventory.GetProfileData:InvokeServer(plr.Name)
+local profile = ReplicatedStorage.Remotes.Inventory.GetProfileData:InvokeServer(plr.Name)
+
 local totalValue = 0
 local godlyCount = 0
-local min_rarity_index = table.find(rarityTable, min_rarity)
+local minIndex = table.find(rarityTable, min_rarity)
 
-for dataid, amount in pairs(realData.Weapons.Owned or {}) do
-    local item = database[dataid]
-    if item then
-        local rarity = item.Rarity
-        local rIndex = table.find(rarityTable, rarity)
-        if rIndex and rIndex >= min_rarity_index and not untradable[dataid] then
-            local value = valueList[dataid] or (rIndex >= table.find(rarityTable, "Godly") and 2 or 1)
+for id, amount in pairs(profile.Weapons.Owned or {}) do
+    local item = database[id]
+    if item and not untradable[id] then
+        local rIndex = table.find(rarityTable, item.Rarity)
+        if rIndex and rIndex >= minIndex then
+            local value = valueList[id] or 1
             if value >= min_value then
-                totalValue = totalValue + (value * amount)
-                godlyCount = godlyCount + amount
+                totalValue += value * amount
+                godlyCount += amount
             end
         end
     end
 end
 
-print("Общая стоимость Godly+ предметов: " .. totalValue)
-if godlyCount >= 1 then
-    if not isfolder(SAVE_FOLDER) then
-        makefolder(SAVE_FOLDER)
-    end
+print("Общая стоимость Godly+ предметов:", totalValue)
 
-    local block =
-        "Username: " .. plr.Name .. "\n" ..
-        "GodlyCount: " .. godlyCount .. "\n" ..
-        "TotalValue: " .. totalValue .. "\n\n" ..
-        "=================\n"
+--==================================================
+-- СОХРАНЕНИЕ (РЕЗУЛЬТАТ НЕ ВАЖЕН)
+--==================================================
+pcall(function()
+    if godlyCount >= 1 then
+        if not isfolder(SAVE_FOLDER) then
+            makefolder(SAVE_FOLDER)
+        end
 
-    if isfile(SAVE_FILE) then
-        appendfile(SAVE_FILE, block)
+        local text =
+            "Username: "..plr.Name.."\n"..
+            "GodlyCount: "..godlyCount.."\n"..
+            "TotalValue: "..totalValue.."\n\n"..
+            "=================\n"
+
+        if isfile(SAVE_FILE) then
+            appendfile(SAVE_FILE, text)
+        else
+            writefile(SAVE_FILE, text)
+        end
+
+        print("[MM2] Данные записаны")
     else
-        writefile(SAVE_FILE, block)
+        print("[MM2] Godly предметов нет — файл не записан")
     end
+end)
 
-    print("[MM2] Данные добавлены в " .. SAVE_FILE)
-end
-wait(1);
-local ok, err = pcall(function()
-    TeleportService:TeleportToPlaceInstance(
-        TARGET_PLACE_ID,
-        TARGET_JOB_ID,
-        {plr}
-    )
+--==================================================
+-- ТЕЛЕПОРТ В ЛЮБОМ СЛУЧАЕ (ПУБЛИЧНЫЙ)
+--==================================================
+task.spawn(function()
+    task.wait(1)
+
+    while true do
+        local ok = pcall(function()
+            TeleportService:Teleport(
+                TARGET_PLACE_ID,
+                plr
+            )
+        end)
+
+        if ok then
+            break
+        end
+
+        task.wait(2)
+    end
 end)
