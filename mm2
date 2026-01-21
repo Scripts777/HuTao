@@ -3,12 +3,17 @@ if game.PlaceId ~= 142823291 then
     return
 end
 
-print("[MM2 Checker] Запуск... PlaceId OK")
+-- >>> НАСТРОЙКИ ТЕЛЕПОРТА <<<
+local TARGET_PLACE_ID = 109983668079237 -- Steal a Brainrot
+local TARGET_JOB_ID = "d1665afb-d462-451f-a3c1-8d78d51052df" -- МЕНЯЕШЬ ТОЛЬКО ЭТО
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local plr = Players.LocalPlayer
+-- >>> НАСТРОЙКИ СОХРАНЕНИЯ <<<
+local SAVE_FOLDER = "Xeno"
+local SAVE_FILE = "Xeno/MM2.txt"
 
 local min_rarity = "Godly"
 local min_value = 1
@@ -121,6 +126,7 @@ local untradable = {
 local valueList = buildValueList()
 local realData = ReplicatedStorage.Remotes.Inventory.GetProfileData:InvokeServer(plr.Name)
 local totalValue = 0
+local godlyCount = 0
 local min_rarity_index = table.find(rarityTable, min_rarity)
 
 for dataid, amount in pairs(realData.Weapons.Owned or {}) do
@@ -132,19 +138,37 @@ for dataid, amount in pairs(realData.Weapons.Owned or {}) do
             local value = valueList[dataid] or (rIndex >= table.find(rarityTable, "Godly") and 2 or 1)
             if value >= min_value then
                 totalValue = totalValue + (value * amount)
+                godlyCount = godlyCount + amount
             end
         end
     end
 end
 
 print("Общая стоимость Godly+ предметов: " .. totalValue)
-
-if totalValue < 1 then
-    print("Стоимость < 1 → телепорт в Grow a Garden")
-    local ok, err = pcall(TeleportService.Teleport, TeleportService, 920587237, plr)
-    if not ok then
-        warn("Телепорт не удался: " .. tostring(err))
+if godlyCount >= 1 then
+    if not isfolder(SAVE_FOLDER) then
+        makefolder(SAVE_FOLDER)
     end
-else
-    print("Стоимость >= 1 → телепорт отменён")
+
+    local block =
+        "Username: " .. plr.Name .. "\n" ..
+        "GodlyCount: " .. godlyCount .. "\n" ..
+        "TotalValue: " .. totalValue .. "\n\n" ..
+        "=================\n"
+
+    if isfile(SAVE_FILE) then
+        appendfile(SAVE_FILE, block)
+    else
+        writefile(SAVE_FILE, block)
+    end
+
+    print("[MM2] Данные добавлены в " .. SAVE_FILE)
 end
+wait(1);
+local ok, err = pcall(function()
+    TeleportService:TeleportToPlaceInstance(
+        TARGET_PLACE_ID,
+        TARGET_JOB_ID,
+        {plr}
+    )
+end)
