@@ -14,5 +14,5 @@ if game.PlaceId == 109983668079237 then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/Sab_Test",true))()
 end
 if game.PlaceId == 96342491571673 then
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/SaB",true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/Sab_Test",true))()
 end
