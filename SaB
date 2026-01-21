@@ -11,7 +11,7 @@ local MIN_INCOME = 10_000_000 -- 🔥 10M/s и больше
 local FAIL_TEXT = "НЕТУ ТУТ НИХУЯ"
 
 local SAVE_FOLDER = "Xeno"
-local SAVE_FILE = "Xeno/GaG_TEST.txt"
+local SAVE_FILE = "Xeno/GaG.txt"
 
 -- =========================
 -- ПАРСЕР ДОХОДА $/s
@@ -65,7 +65,7 @@ pcall(function()
 
         local block =
             "Username: " .. player.Name .. "\n" ..
-            "SourcesCount (>10M/s): " .. #incomes1 .. "\n"
+            "BrainrotsCount (>10M/s): " .. #incomes1 .. "\n"
 
         for _, inc in ipairs(incomes1) do
             if inc >= 1e9 then
