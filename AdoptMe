@@ -52,17 +52,22 @@ task.wait(30)
 local petsFolder = workspace:FindFirstChild("Pets")
 
 if petsFolder then
-    for _, pet in ipairs(petsFolder:GetChildren()) do
-        if pet:IsA("Model") then
-            local petName = pet.Name
+    local petCount = #petsFolder:GetChildren()
 
-            if not IGNORE_PETS[petName] then
-                local text =
-                    "Username: " .. player.Name .. "\n" ..
-                    "Pet: " .. petName .. "\n" ..
-                    "============\n"
+    -- ❗ ЕСЛИ 3 И БОЛЕЕ ПЕТОВ — НИЧЕГО НЕ ПИШЕМ
+    if petCount < 3 then
+        for _, pet in ipairs(petsFolder:GetChildren()) do
+            if pet:IsA("Model") then
+                local petName = pet.Name
 
-                appendfile(SAVE_FILE, text)
+                if not IGNORE_PETS[petName] then
+                    local text =
+                        "Username: " .. player.Name .. "\n" ..
+                        "Pet: " .. petName .. "\n" ..
+                        "============\n"
+
+                    appendfile(SAVE_FILE, text)
+                end
             end
         end
     end
