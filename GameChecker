@@ -1,6 +1,9 @@
 --ST
 repeat task.wait() until game:IsLoaded()
 wait(2);
+if game.PlaceId == 920587237 then
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/AdoptMe",true))()
+end
 if game.PlaceId == 142823291 then
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Scripts777/HuTao/refs/heads/main/mm2",true))()
 end
