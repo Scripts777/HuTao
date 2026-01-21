@@ -64,7 +64,7 @@ pcall(function()
         end
 
         local block =
-            "Username: " .. player.Name .. " (" .. player.UserId .. ")\n"
+            "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
             "BrainrotsCount (>10M/s): " .. #incomes1 .. "\n"
 
         for _, inc in ipairs(incomes1) do
