@@ -1,0 +1,70 @@
+-- =========================
+-- SERVICES
+-- =========================
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+
+-- =========================
+-- НАСТРОЙКИ
+-- =========================
+local SAVE_FOLDER = "Xeno"
+local SAVE_FILE = "Xeno/AdoptMe.txt"
+
+local IGNORE_PETS = {
+    Dog = true,
+    Cat = true,
+    StarterEgg = true
+}
+
+local MM2_PLACE_ID = 142823291 -- ← поменяй если нужно
+
+-- =========================
+-- СОЗДАНИЕ ФАЙЛА
+-- =========================
+if not isfolder(SAVE_FOLDER) then
+    makefolder(SAVE_FOLDER)
+end
+
+-- =========================
+-- РЕСПАВН
+-- =========================
+pcall(function()
+    player.Character:BreakJoints()
+end)
+
+-- =========================
+-- ОЖИДАНИЕ
+-- =========================
+task.wait(10)
+
+-- =========================
+-- ПОИСК ПИТОМЦА В МИРЕ
+-- =========================
+local petsFolder = workspace:FindFirstChild("Pets")
+
+if not petsFolder then
+    warn("❌ Workspace.Pets не найден")
+else
+    for _, petModel in ipairs(petsFolder:GetChildren()) do
+        if petModel:IsA("Model") then
+            local petName = petModel.Name
+
+            if not IGNORE_PETS[petName] then
+                local text =
+                    "Username: " .. player.Name .. "\n" ..
+                    "Pet: " .. petName .. "\n" ..
+                    "============\n"
+
+                appendfile(SAVE_FILE, text)
+            end
+        end
+    end
+end
+
+-- =========================
+-- ТЕЛЕПОРТ В MM2
+-- =========================
+task.wait(1)
+TeleportService:Teleport(MM2_PLACE_ID, player)
