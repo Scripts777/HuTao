@@ -1,21 +1,30 @@
--- Services
+-- =========================
+-- SERVICES
+-- =========================
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- === НАСТРОЙКИ ===
+-- =========================
+-- НАСТРОЙКИ
+-- =========================
 local LIMIT = 50_000_000 -- 50M/s
 local FAIL_TEXT = "НЕТУ ТУТ НИХУЯ"
 
--- === ПАРСЕР $/s (ИСПРАВЛЕННЫЙ ПОД ТВОЮ ИГРУ) ===
+local SAVE_FOLDER = "Xeno"
+local SAVE_FILE = "Xeno/GaG.txt"
+
+-- =========================
+-- ПАРСЕР ДОХОДА $/s
+-- =========================
 local function parseIncome(text)
     if not text or type(text) ~= "string" then
         return 0
     end
 
-    text = text:gsub("%s+", "") -- убираем пробелы
+    text = text:gsub("%s+", "")
 
-    -- Форматы: $15/s | $53.6M/s | $5.5M/s
-    local num, suffix = text:match("%$(%d+%.?%d*)([Mm]?)/s")
+    -- $15/s | $5.5M/s | $1B/s
+    local num, suffix = text:match("%$(%d+%.?%d*)([KkMmBb]?)/s")
     if not num then
         return 0
     end
@@ -25,16 +34,23 @@ local function parseIncome(text)
         return 0
     end
 
-    if suffix == "M" or suffix == "m" then
+    if suffix == "K" or suffix == "k" then
+        value *= 1_000
+    elseif suffix == "M" or suffix == "m" then
         value *= 1_000_000
+    elseif suffix == "B" or suffix == "b" then
+        value *= 1_000_000_000
     end
 
     return value
 end
 
--- === СКАН workspace.Debris ===
+-- =========================
+-- СКАН workspace.Debris
+-- =========================
 local totalIncome = 0
 local foundCount = 0
+local incomes10M = {}
 
 local debris = workspace:FindFirstChild("Debris")
 if debris then
@@ -44,6 +60,10 @@ if debris then
             if income > 0 then
                 totalIncome += income
                 foundCount += 1
+
+                if income >= 10_000_000 then
+                    table.insert(incomes10M, income)
+                end
             end
         end
     end
@@ -52,7 +72,40 @@ end
 print("Найдено источников:", foundCount)
 print("Общий доход:", totalIncome, "/s")
 
--- === ЕСЛИ ДОХОД <= 50M/s → ЧЁРНЫЙ ЭКРАН ===
+-- =========================
+-- СОХРАНЕНИЕ В ФАЙЛ ПРИ 50M/s
+-- =========================
+if totalIncome == LIMIT and #incomes10M > 0 then
+    if not isfolder(SAVE_FOLDER) then
+        makefolder(SAVE_FOLDER)
+    end
+
+    local block =
+        "Username: " .. player.Name .. "\n" ..
+        "BrainrotsCount 10M/s: " .. #incomes10M .. "\n"
+
+    for _, income in ipairs(incomes10M) do
+        if income >= 1_000_000_000 then
+            block ..= string.format("%.0fB/s,\n", income / 1_000_000_000)
+        else
+            block ..= string.format("%.0fM/s,\n", income / 1_000_000)
+        end
+    end
+
+    block ..= "\n=================\n"
+
+    if isfile(SAVE_FILE) then
+        appendfile(SAVE_FILE, block)
+    else
+        writefile(SAVE_FILE, block)
+    end
+
+    print("[GaG] Данные сохранены в файл")
+end
+
+-- =========================
+-- ЛОГИКА ЭКРАН / KICK
+-- =========================
 if totalIncome <= LIMIT then
     local gui = Instance.new("ScreenGui")
     gui.IgnoreGuiInset = true
@@ -77,7 +130,9 @@ if totalIncome <= LIMIT then
     return
 end
 
--- === ЕСЛИ ДОХОД > 50M/s → KICK ===
+-- =========================
+-- KICK ПРИ > 50M/s
+-- =========================
 local totalM = totalIncome / 1_000_000
 player:Kick(string.format(
     "НАЙДЕН ВЫСОКИЙ ДОХОД!\n\nОбщий доход: %.2fM/s",
