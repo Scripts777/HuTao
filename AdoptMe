@@ -17,19 +17,20 @@ local IGNORE_PETS = {
     StarterEgg = true
 }
 
-local TARGET_PLACE_ID = 142823291 -- MM2 (поменяй если нужно)
+local TARGET_PLACE_ID = 142823291 -- MM2
+local PET_DISTANCE = 20           -- радиус определения пета
 
 -- =========================
--- ПОДГОТОВКА ФАЙЛА
+-- FILE SETUP
 -- =========================
 if not isfolder(SAVE_FOLDER) then
     makefolder(SAVE_FOLDER)
 end
 
 -- =========================
--- РЕСЕТ ИГРОКА (СМЕРТЬ)
+-- RESET CHARACTER (БЕЗ ЗАДЕРЖЕК)
 -- =========================
-local function resetCharacter()
+do
     local char = player.Character or player.CharacterAdded:Wait()
     local hum = char:FindFirstChildOfClass("Humanoid")
     if hum then
@@ -39,44 +40,81 @@ local function resetCharacter()
     end
 end
 
-resetCharacter()
+-- =========================
+-- CHARACTER / HRP
+-- =========================
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
 -- =========================
--- ОЖИДАНИЕ ПОСЛЕ РЕСПАВНА
+-- HELPERS
 -- =========================
-task.wait(30)
+local function looksLikePet(model)
+    if not model:IsA("Model") then return false end
+    if not model:FindFirstChildOfClass("Humanoid") then return false end
+    if model:FindFirstChild("PetFocusPosition", true) then return true end
+    if model:FindFirstChild("PetSound:SpawnPuff", true) then return true end
+    if model:FindFirstChild("MountMotor6D", true) then return true end
+    return false
+end
 
--- =========================
--- СКАН WORKSPACE.PETS
--- =========================
-local petsFolder = workspace:FindFirstChild("Pets")
+local function isNearPlayer(model)
+    local root = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+    if not root then return false end
+    return (root.Position - hrp.Position).Magnitude <= PET_DISTANCE
+end
 
-if petsFolder then
-    local petCount = #petsFolder:GetChildren()
-
-    -- ❗ ЕСЛИ 3 И БОЛЕЕ ПЕТОВ — НИЧЕГО НЕ ПИШЕМ
-    if petCount < 3 then
-        for _, pet in ipairs(petsFolder:GetChildren()) do
-            if pet:IsA("Model") then
-                local petName = pet.Name
-
-                if not IGNORE_PETS[petName] then
-                    local text =
-                        "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
-                        "Pet: " .. petName .. "\n" ..
-                        "============\n"
-
-                    appendfile(SAVE_FILE, text)
-                end
-            end
-        end
-    end
-else
-    warn("Workspace.Pets не найден")
+local function getPetName(model)
+    return model.Name
 end
 
 -- =========================
--- ТЕЛЕПОРТ НА ДРУГОЙ ПЛЕЙС
+-- FIND CURRENT PET (СРАЗУ)
 -- =========================
-task.wait(1)
+local currentPetName = nil
+local seenPets = {}
+
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
+        local name = getPetName(obj)
+        if not IGNORE_PETS[name] then
+            currentPetName = name
+            seenPets[name] = true
+            break
+        end
+    end
+end
+
+-- =========================
+-- WRITE HEADER
+-- =========================
+local block =
+    "Username: " .. player.Name .. " (" .. player.UserId .. ")\n\n"
+
+if currentPetName then
+    block ..= "CurrentPet: " .. currentPetName .. "\n"
+else
+    block ..= "CurrentPet: NONE\n"
+end
+
+block ..= "----------------\n"
+
+writefile(SAVE_FILE, block)
+
+-- =========================
+-- LISTEN FOR NEXT PETS (БЕЗ ТАЙМЕРОВ)
+-- =========================
+workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
+        local name = getPetName(obj)
+        if not IGNORE_PETS[name] and not seenPets[name] then
+            seenPets[name] = true
+            appendfile(SAVE_FILE, "NextPet: " .. name .. "\n")
+        end
+    end
+end)
+task.wait(15);
+-- =========================
+-- TELEPORT (БЕЗ ЗАДЕРЖЕК)
+-- =========================
 TeleportService:Teleport(TARGET_PLACE_ID, player)
