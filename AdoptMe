@@ -27,18 +27,7 @@ if not isfolder(SAVE_FOLDER) then
     makefolder(SAVE_FOLDER)
 end
 
--- =========================
--- RESET CHARACTER (БЕЗ ЗАДЕРЖЕК)
--- =========================
-do
-    local char = player.Character or player.CharacterAdded:Wait()
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.Health = 0
-    else
-        char:BreakJoints()
-    end
-end
+
 
 -- =========================
 -- CHARACTER / HRP
