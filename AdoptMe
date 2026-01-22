@@ -93,7 +93,7 @@ end)
 -- =========================
 -- WAIT & CLOSE BLOCK
 -- =========================
-task.wait(10)
+task.wait(12)
 
 appendfile(SAVE_FILE, "=====================\n")
 
