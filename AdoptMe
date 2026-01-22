@@ -114,7 +114,7 @@ local PlayerGui = player:WaitForChild("PlayerGui")
 -- НАСТРОЙКИ
 -- =========================
 local INVENTORY_KEY = Enum.KeyCode.B -- поменяй если в игре другая клавиша
-local DISPLAY_ORDER = 2147483647
+local DISPLAY_ORDER = 99999999999999999999999999999999
 
 -- =========================
 -- ОТКРЫТИЕ ИНВЕНТАРЯ (ПК)
