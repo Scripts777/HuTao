@@ -1,5 +1,5 @@
 -- =========================
--- SERVICES
+-- SERVICESSSSSSSSSSSSSSSSSSSSSSSSSS
 -- =========================
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
@@ -17,25 +17,14 @@ local IGNORE_PETS = {
     StarterEggsss = true
 }
 
-local TARGET_PLACE_ID = 142823291 -- MM2
-local PET_DISTANCE = 20           -- радиус определения пета
+local TARGET_PLACE_ID = 142823291
+local PET_DISTANCE = 20
 
 -- =========================
 -- FILE SETUP
 -- =========================
 if not isfolder(SAVE_FOLDER) then
     makefolder(SAVE_FOLDER)
-end
-
--- =========================
--- PREPEND FILE (ДОБАВЛЕНИЕ СВЕРХУ)
--- =========================
-local function prependfile(path, text)
-    local old = ""
-    if isfile(path) then
-        old = readfile(path)
-    end
-    writefile(path, text .. old)
 end
 
 -- =========================
@@ -49,6 +38,7 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 -- =========================
 local function looksLikePet(model)
     if not model:IsA("Model") then return false end
+    if Players:GetPlayerFromCharacter(model) then return false end
     if not model:FindFirstChildOfClass("Humanoid") then return false end
     if model:FindFirstChild("PetFocusPosition", true) then return true end
     if model:FindFirstChild("PetSound:SpawnPuff", true) then return true end
@@ -62,19 +52,15 @@ local function isNearPlayer(model)
     return (root.Position - hrp.Position).Magnitude <= PET_DISTANCE
 end
 
-local function getPetName(model)
-    return model.Name
-end
-
 -- =========================
--- FIND CURRENT PET (СРАЗУ)
+-- FIND CURRENT PET
 -- =========================
-local currentPetName = nil
+local currentPetName = "NONE"
 local seenPets = {}
 
 for _, obj in ipairs(workspace:GetDescendants()) do
     if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
-        local name = getPetName(obj)
+        local name = obj.Name
         if not IGNORE_PETS[name] then
             currentPetName = name
             seenPets[name] = true
@@ -84,88 +70,34 @@ for _, obj in ipairs(workspace:GetDescendants()) do
 end
 
 -- =========================
--- WRITE HEADER (СВЕРХУ, БЕЗ СТИРАНИЯ)
+-- WRITE ACCOUNT BLOCK START
 -- =========================
-local block =
-    "Username: " .. player.Name .. " (" .. player.UserId .. ")\n\n"
-
-if currentPetName then
-    block ..= "CurrentPet: " .. currentPetName .. "\n"
-else
-    block ..= "CurrentPet: NONE\n"
-end
-
-block ..= "----------------\n"
-
-prependfile(SAVE_FILE, block)
+appendfile(SAVE_FILE,
+    "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
+    "CurrentPet: " .. currentPetName .. "\n"
+)
 
 -- =========================
--- LISTEN FOR NEXT PETS (БЕЗ ТАЙМЕРОВ)
+-- LISTEN FOR NEXT PETS
 -- =========================
 workspace.DescendantAdded:Connect(function(obj)
     if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
-        local name = getPetName(obj)
+        local name = obj.Name
         if not IGNORE_PETS[name] and not seenPets[name] then
             seenPets[name] = true
-            appendfile(SAVE_FILE, "NextPet: " .. name .. "\n")
+            appendfile(SAVE_FILE, name .. "\n")
         end
     end
 end)
 
-task.wait(5)
+-- =========================
+-- WAIT & CLOSE BLOCK
+-- =========================
+task.wait(10)
+
+appendfile(SAVE_FILE, "=====================\n")
 
 -- =========================
--- SERVICES (INVENTORY)
--- =========================
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local PlayerGui = player:WaitForChild("PlayerGui")
-
--- =========================
--- НАСТРОЙКИ
--- =========================
-local INVENTORY_KEY = Enum.KeyCode.B
-local DISPLAY_ORDER = 99999999999999999999999999999999
-
--- =========================
--- ОТКРЫТИЕ ИНВЕНТАРЯ (ПК)
--- =========================
-local function openInventoryPC()
-    VirtualInputManager:SendKeyEvent(true, INVENTORY_KEY, false, game)
-    task.wait()
-    VirtualInputManager:SendKeyEvent(false, INVENTORY_KEY, false, game)
-end
-
--- =========================
--- ПОДНЯТИЕ ИНВЕНТАРЯ
--- =========================
-local function elevateInventoryGui()
-    for _, gui in ipairs(PlayerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            local name = gui.Name:lower()
-            if name:find("backpack") or name:find("inventory") then
-                gui.DisplayOrder = DISPLAY_ORDER
-                gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-            end
-        end
-    end
-end
-
--- =========================
--- ЛОГИКА
--- =========================
-task.wait(0.1)
-elevateInventoryGui()
-
-PlayerGui.ChildAdded:Connect(function(child)
-    if child:IsA("ScreenGui") then
-        task.wait()
-        elevateInventoryGui()
-    end
-end)
-
-task.wait(5)
-
--- =========================
--- TELEPORT (БЕЗ ЗАДЕРЖЕК)
+-- TELEPORT
 -- =========================
 TeleportService:Teleport(TARGET_PLACE_ID, player)
