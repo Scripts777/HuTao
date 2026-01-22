@@ -27,7 +27,16 @@ if not isfolder(SAVE_FOLDER) then
     makefolder(SAVE_FOLDER)
 end
 
-
+-- =========================
+-- PREPEND FILE (ДОБАВЛЕНИЕ СВЕРХУ)
+-- =========================
+local function prependfile(path, text)
+    local old = ""
+    if isfile(path) then
+        old = readfile(path)
+    end
+    writefile(path, text .. old)
+end
 
 -- =========================
 -- CHARACTER / HRP
@@ -75,7 +84,7 @@ for _, obj in ipairs(workspace:GetDescendants()) do
 end
 
 -- =========================
--- WRITE HEADER
+-- WRITE HEADER (СВЕРХУ, БЕЗ СТИРАНИЯ)
 -- =========================
 local block =
     "Username: " .. player.Name .. " (" .. player.UserId .. ")\n\n"
@@ -88,7 +97,7 @@ end
 
 block ..= "----------------\n"
 
-writefile(SAVE_FILE, block)
+prependfile(SAVE_FILE, block)
 
 -- =========================
 -- LISTEN FOR NEXT PETS (БЕЗ ТАЙМЕРОВ)
@@ -102,18 +111,19 @@ workspace.DescendantAdded:Connect(function(obj)
         end
     end
 end)
-task.wait(5);
--- SERVICES
-local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local player = Players.LocalPlayer
+task.wait(5)
+
+-- =========================
+-- SERVICES (INVENTORY)
+-- =========================
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local PlayerGui = player:WaitForChild("PlayerGui")
 
 -- =========================
 -- НАСТРОЙКИ
 -- =========================
-local INVENTORY_KEY = Enum.KeyCode.B -- поменяй если в игре другая клавиша
+local INVENTORY_KEY = Enum.KeyCode.B
 local DISPLAY_ORDER = 99999999999999999999999999999999
 
 -- =========================
@@ -143,22 +153,18 @@ end
 -- =========================
 -- ЛОГИКА
 -- =========================
-
--- 1️⃣ открыть инвентарь через клавишу
-
-
--- 2️⃣ сразу попытаться поднять
 task.wait(0.1)
 elevateInventoryGui()
 
--- 3️⃣ если GUI появится позже — всё равно поднимем
 PlayerGui.ChildAdded:Connect(function(child)
     if child:IsA("ScreenGui") then
         task.wait()
         elevateInventoryGui()
     end
 end)
-task.wait(5);
+
+task.wait(5)
+
 -- =========================
 -- TELEPORT (БЕЗ ЗАДЕРЖЕК)
 -- =========================
