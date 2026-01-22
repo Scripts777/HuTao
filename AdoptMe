@@ -102,7 +102,63 @@ workspace.DescendantAdded:Connect(function(obj)
         end
     end
 end)
-task.wait(15);
+task.wait(5);
+-- SERVICES
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- =========================
+-- НАСТРОЙКИ
+-- =========================
+local INVENTORY_KEY = Enum.KeyCode.B -- поменяй если в игре другая клавиша
+local DISPLAY_ORDER = 2147483647
+
+-- =========================
+-- ОТКРЫТИЕ ИНВЕНТАРЯ (ПК)
+-- =========================
+local function openInventoryPC()
+    VirtualInputManager:SendKeyEvent(true, INVENTORY_KEY, false, game)
+    task.wait()
+    VirtualInputManager:SendKeyEvent(false, INVENTORY_KEY, false, game)
+end
+
+-- =========================
+-- ПОДНЯТИЕ ИНВЕНТАРЯ
+-- =========================
+local function elevateInventoryGui()
+    for _, gui in ipairs(PlayerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            local name = gui.Name:lower()
+            if name:find("backpack") or name:find("inventory") then
+                gui.DisplayOrder = DISPLAY_ORDER
+                gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+            end
+        end
+    end
+end
+
+-- =========================
+-- ЛОГИКА
+-- =========================
+
+-- 1️⃣ открыть инвентарь через клавишу
+openInventoryPC()
+
+-- 2️⃣ сразу попытаться поднять
+task.wait(0.1)
+elevateInventoryGui()
+
+-- 3️⃣ если GUI появится позже — всё равно поднимем
+PlayerGui.ChildAdded:Connect(function(child)
+    if child:IsA("ScreenGui") then
+        task.wait()
+        elevateInventoryGui()
+    end
+end)
+task.wait(5);
 -- =========================
 -- TELEPORT (БЕЗ ЗАДЕРЖЕК)
 -- =========================
