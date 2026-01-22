@@ -12,9 +12,9 @@ local SAVE_FOLDER = "Xeno"
 local SAVE_FILE = "Xeno/AdoptMe.txt"
 
 local IGNORE_PETS = {
-    Dog = true,
-    Cat = true,
-    StarterEgg = true
+    Dogsss = true,
+    Catsss = true,
+    StarterEggsss = true
 }
 
 local TARGET_PLACE_ID = 142823291 -- MM2
