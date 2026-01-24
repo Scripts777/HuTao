@@ -13,9 +13,9 @@ local SAVE_FOLDER = "Xeno"
 local SAVE_FILE = "Xeno/AdoptMe.txt"
 
 local IGNORE_PETS = {
-    Dogsss = true,
-    Catsss = true,
-    StarterEggsss = true
+    Dog = true,
+    Cat = true,
+    StarterEgg = true
 }
 
 local TARGET_PLACE_ID = 142823291
@@ -54,58 +54,61 @@ local function isNearPlayer(model)
 end
 
 -- =========================
--- FIND CURRENT PET
+-- SCAN PETS
 -- =========================
-local currentPetName = "NONE"
+local validPets = {}
 local seenPets = {}
 
 for _, obj in ipairs(workspace:GetDescendants()) do
     if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
         local name = obj.Name
         if not IGNORE_PETS[name] then
-            currentPetName = name
+            table.insert(validPets, name)
             seenPets[name] = true
-            break
         end
     end
 end
 
--- =========================
--- WRITE ACCOUNT BLOCK START
--- =========================
-appendfile(SAVE_FILE,
-    "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
-    "CurrentPet: " .. currentPetName .. "\n"
-)
+-- ❌ НИЧЕГО НЕ НАШЛИ — ВЫХОД
+if #validPets == 0 then
+    warn("Нет валидных петов — файл не записывается")
+else
+    -- =========================
+    -- WRITE START
+    -- =========================
+    appendfile(
+        SAVE_FILE,
+        "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
+        "CurrentPet: " .. validPets[1] .. "\n"
+    )
 
--- =========================
--- LISTEN FOR NEXT PETS
--- =========================
-workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
-        local name = obj.Name
-        if not IGNORE_PETS[name] and not seenPets[name] then
-            seenPets[name] = true
-            appendfile(SAVE_FILE, name .. "\n")
+    -- =========================
+    -- LISTEN FOR NEXT PETS
+    -- =========================
+    workspace.DescendantAdded:Connect(function(obj)
+        if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
+            local name = obj.Name
+            if not IGNORE_PETS[name] and not seenPets[name] then
+                seenPets[name] = true
+                appendfile(SAVE_FILE, name .. "\n")
+            end
         end
-    end
-end)
+    end)
+
+    -- =========================
+    -- CLOSE BLOCK
+    -- =========================
+    task.wait(12)
+    appendfile(SAVE_FILE, "=====================\n")
+end
 
 -- =========================
--- WAIT & CLOSE BLOCK
--- =========================
-task.wait(12)
-appendfile(SAVE_FILE, "=====================\n")
-
--- =========================
--- TELEPORT ON KEY "C"
+-- TELEPORT ON "C"
 -- =========================
 local teleported = false
 
 UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if teleported then return end
-
+    if gp or teleported then return end
     if input.KeyCode == Enum.KeyCode.C then
         teleported = true
         TeleportService:Teleport(TARGET_PLACE_ID, player)
