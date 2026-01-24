@@ -20,6 +20,7 @@ local IGNORE_PETS = {
 
 local TARGET_PLACE_ID = 142823291
 local PET_DISTANCE = 20
+local TELEPORT_DELAY = 10
 
 -- =========================
 -- FILE SETUP
@@ -80,10 +81,10 @@ for _, obj in ipairs(workspace:GetDescendants()) do
 end
 
 -- =========================
--- SKIP ACCOUNT IF NO VALID PET
+-- IF NO VALID PETS → WAIT & TELEPORT
 -- =========================
 if not hasValidPet then
-	-- только Dog / Cat / StarterEgg → ничего не пишем
+	task.wait(TELEPORT_DELAY)
 	TeleportService:Teleport(TARGET_PLACE_ID, player)
 	return
 end
@@ -115,9 +116,9 @@ conn = workspace.DescendantAdded:Connect(function(obj)
 end)
 
 -- =========================
--- WAIT & CLOSE BLOCK
+-- WAIT, CLOSE BLOCK & TELEPORT
 -- =========================
-task.wait(15)
+task.wait(TELEPORT_DELAY)
 
 if conn then
 	conn:Disconnect()
@@ -125,7 +126,4 @@ end
 
 appendfile(SAVE_FILE, "=====================\n")
 
--- =========================
--- TELEPORT
--- =========================
 TeleportService:Teleport(TARGET_PLACE_ID, player)
