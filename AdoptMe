@@ -18,7 +18,7 @@ local IGNORE_PETS = {
 	StarterEgg = true
 }
 
-local TARGET_PLACE_ID = 142823291
+local TARGET_PLACE_ID = 109983668079237
 local PET_DISTANCE = 20
 local TELEPORT_DELAY = 10
 
