@@ -4,17 +4,18 @@
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
 
 -- =========================
--- НАСТРОЙКИ
+-- SETTINGS
 -- =========================
 local SAVE_FOLDER = "Xeno"
 local SAVE_FILE = "Xeno/AdoptMe.txt"
 
 local IGNORE_PETS = {
-    Dog = true,
-    Cat = true,
-    StarterEgg = true
+	Dog = true,
+	Cat = true,
+	StarterEgg = true
 }
 
 local TARGET_PLACE_ID = 142823291
@@ -24,7 +25,7 @@ local PET_DISTANCE = 20
 -- FILE SETUP
 -- =========================
 if not isfolder(SAVE_FOLDER) then
-    makefolder(SAVE_FOLDER)
+	makefolder(SAVE_FOLDER)
 end
 
 -- =========================
@@ -33,98 +34,98 @@ end
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
+player.CharacterAdded:Connect(function(char)
+	character = char
+	hrp = char:WaitForChild("HumanoidRootPart")
+end)
+
 -- =========================
 -- HELPERS
 -- =========================
 local function looksLikePet(model)
-    if not model:IsA("Model") then return false end
-    if Players:GetPlayerFromCharacter(model) then return false end
-    if not model:FindFirstChildOfClass("Humanoid") then return false end
-    if model:FindFirstChild("PetFocusPosition", true) then return true end
-    if model:FindFirstChild("PetSound:SpawnPuff", true) then return true end
-    if model:FindFirstChild("MountMotor6D", true) then return true end
-    return false
+	if not model:IsA("Model") then return false end
+	if Players:GetPlayerFromCharacter(model) then return false end
+	if not model:FindFirstChildOfClass("Humanoid") then return false end
+
+	if model:FindFirstChild("PetFocusPosition", true) then return true end
+	if model:FindFirstChild("PetSound:SpawnPuff", true) then return true end
+	if model:FindFirstChild("MountMotor6D", true) then return true end
+
+	return false
 end
 
 local function isNearPlayer(model)
-    local root = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
-    if not root then return false end
-    return (root.Position - hrp.Position).Magnitude <= PET_DISTANCE
+	local root = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+	if not root or not hrp then return false end
+	return (root.Position - hrp.Position).Magnitude <= PET_DISTANCE
 end
 
 -- =========================
--- SCAN PETS
+-- FIND CURRENT PET
 -- =========================
-local validPets = {}
+local currentPetName = "NONE"
 local seenPets = {}
+local hasValidPet = false
 
 for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
-        local name = obj.Name
-        if not IGNORE_PETS[name] then
-            table.insert(validPets, name)
-            seenPets[name] = true
-        end
-    end
+	if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
+		local name = obj.Name
+		if not IGNORE_PETS[name] then
+			currentPetName = name
+			seenPets[name] = true
+			hasValidPet = true
+			break
+		end
+	end
 end
 
 -- =========================
--- WRITE FILE
+-- SKIP ACCOUNT IF NO VALID PET
 -- =========================
-if #validPets == 0 then
-    warn("Нет валидных петов — файл не записывается")
-else
-    appendfile(
-        SAVE_FILE,
-        "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
-        "CurrentPet: " .. validPets[1] .. "\n"
-    )
-
-    workspace.DescendantAdded:Connect(function(obj)
-        if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
-            local name = obj.Name
-            if not IGNORE_PETS[name] and not seenPets[name] then
-                seenPets[name] = true
-                appendfile(SAVE_FILE, name .. "\n")
-            end
-        end
-    end)
-
-    task.wait(12)
-    appendfile(SAVE_FILE, "=====================\n")
+if not hasValidPet then
+	-- только Dog / Cat / StarterEgg → ничего не пишем
+	TeleportService:Teleport(TARGET_PLACE_ID, player)
+	return
 end
 
 -- =========================
--- TELEPORT GUI
+-- WRITE ACCOUNT HEADER
 -- =========================
-local playerGui = player:WaitForChild("PlayerGui")
+appendfile(
+	SAVE_FILE,
+	"Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
+	"CurrentPet: " .. currentPetName .. "\n"
+)
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "TeleportGui"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.Parent = playerGui
+-- =========================
+-- LISTEN FOR NEXT PETS
+-- =========================
+local conn
+conn = workspace.DescendantAdded:Connect(function(obj)
+	if not obj:IsA("Model") then return end
+	if not looksLikePet(obj) then return end
+	if not isNearPlayer(obj) then return end
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 220, 0, 45)
-button.Position = UDim2.new(0.5, -110, 0, 20)
-button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.Text = "TELEPORT"
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 18
-button.BorderSizePixel = 0
-button.Parent = gui
+	local name = obj.Name
+	if IGNORE_PETS[name] then return end
+	if seenPets[name] then return end
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = button
-
-local teleported = false
-
-button.MouseButton1Click:Connect(function()
-    if teleported then return end
-    teleported = true
-    button.Text = "TELEPORTING..."
-    TeleportService:Teleport(TARGET_PLACE_ID, player)
+	seenPets[name] = true
+	appendfile(SAVE_FILE, name .. "\n")
 end)
+
+-- =========================
+-- WAIT & CLOSE BLOCK
+-- =========================
+task.wait(12)
+
+if conn then
+	conn:Disconnect()
+end
+
+appendfile(SAVE_FILE, "=====================\n")
+
+-- =========================
+-- TELEPORT
+-- =========================
+TeleportService:Teleport(TARGET_PLACE_ID, player)
