@@ -117,7 +117,7 @@ end)
 -- =========================
 -- WAIT & CLOSE BLOCK
 -- =========================
-task.wait(12)
+task.wait(15)
 
 if conn then
 	conn:Disconnect()
