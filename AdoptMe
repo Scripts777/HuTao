@@ -13,14 +13,13 @@ local SAVE_FOLDER = "Xeno"
 local SAVE_FILE = "Xeno/AdoptMe.txt"
 
 local IGNORE_PETS = {
-	Dog = true,
-	Cat = true,
-	StarterEgg = true
+	Dogsss = true,
+	Catsss = true,
+	StarterEggsss = true
 }
 
-local TARGET_PLACE_ID = 109983668079237
+local TARGET_PLACE_ID = 142823291
 local PET_DISTANCE = 20
-local TELEPORT_DELAY = 10
 
 -- =========================
 -- FILE SETUP
@@ -66,7 +65,6 @@ end
 -- =========================
 local currentPetName = "NONE"
 local seenPets = {}
-local hasValidPet = false
 
 for _, obj in ipairs(workspace:GetDescendants()) do
 	if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
@@ -74,19 +72,9 @@ for _, obj in ipairs(workspace:GetDescendants()) do
 		if not IGNORE_PETS[name] then
 			currentPetName = name
 			seenPets[name] = true
-			hasValidPet = true
 			break
 		end
 	end
-end
-
--- =========================
--- IF NO VALID PETS → WAIT & TELEPORT
--- =========================
-if not hasValidPet then
-	task.wait(TELEPORT_DELAY)
-	TeleportService:Teleport(TARGET_PLACE_ID, player)
-	return
 end
 
 -- =========================
@@ -116,9 +104,9 @@ conn = workspace.DescendantAdded:Connect(function(obj)
 end)
 
 -- =========================
--- WAIT, CLOSE BLOCK & TELEPORT
+-- WAIT & CLOSE BLOCK
 -- =========================
-task.wait(TELEPORT_DELAY)
+task.wait(12)
 
 if conn then
 	conn:Disconnect()
@@ -126,4 +114,7 @@ end
 
 appendfile(SAVE_FILE, "=====================\n")
 
+-- =========================
+-- TELEPORT
+-- =========================
 TeleportService:Teleport(TARGET_PLACE_ID, player)
