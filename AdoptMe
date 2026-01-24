@@ -3,7 +3,6 @@
 -- =========================
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
-local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 -- =========================
@@ -69,22 +68,18 @@ for _, obj in ipairs(workspace:GetDescendants()) do
     end
 end
 
--- ❌ НИЧЕГО НЕ НАШЛИ — ВЫХОД
+-- =========================
+-- WRITE FILE
+-- =========================
 if #validPets == 0 then
     warn("Нет валидных петов — файл не записывается")
 else
-    -- =========================
-    -- WRITE START
-    -- =========================
     appendfile(
         SAVE_FILE,
         "Username: " .. player.Name .. " (" .. player.UserId .. ")\n" ..
         "CurrentPet: " .. validPets[1] .. "\n"
     )
 
-    -- =========================
-    -- LISTEN FOR NEXT PETS
-    -- =========================
     workspace.DescendantAdded:Connect(function(obj)
         if obj:IsA("Model") and looksLikePet(obj) and isNearPlayer(obj) then
             local name = obj.Name
@@ -95,22 +90,41 @@ else
         end
     end)
 
-    -- =========================
-    -- CLOSE BLOCK
-    -- =========================
     task.wait(12)
     appendfile(SAVE_FILE, "=====================\n")
 end
 
 -- =========================
--- TELEPORT ON "C"
+-- TELEPORT GUI
 -- =========================
+local playerGui = player:WaitForChild("PlayerGui")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "TeleportGui"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 220, 0, 45)
+button.Position = UDim2.new(0.5, -110, 0, 20)
+button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Text = "TELEPORT"
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 18
+button.BorderSizePixel = 0
+button.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = button
+
 local teleported = false
 
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp or teleported then return end
-    if input.KeyCode == Enum.KeyCode.C then
-        teleported = true
-        TeleportService:Teleport(TARGET_PLACE_ID, player)
-    end
+button.MouseButton1Click:Connect(function()
+    if teleported then return end
+    teleported = true
+    button.Text = "TELEPORTING..."
+    TeleportService:Teleport(TARGET_PLACE_ID, player)
 end)
